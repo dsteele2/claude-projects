@@ -1,1 +1,601 @@
-<h1>hello</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>food log</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --surface2: #242424;
+      --border: #2e2e2e;
+      --text: #e8e8e8;
+      --muted: #666;
+      --accent: #c8f060;
+      --accent-dim: #8aab2a;
+      --danger: #ff5c5c;
+      --mono: 'DM Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    header {
+      padding: 20px 16px 12px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 10;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-transform: lowercase;
+    }
+
+    .date-nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .date-nav button {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 2px 6px;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+
+    .date-nav button:hover { color: var(--text); }
+
+    #current-date {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 90px;
+      text-align: center;
+    }
+
+    .totals-bar {
+      display: flex;
+      gap: 20px;
+    }
+
+    .total-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .total-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .total-value {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .total-value span {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    .entries {
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 40px 0;
+      line-height: 2;
+    }
+
+    .entry {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideIn 0.2s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .entry-info { flex: 1; min-width: 0; }
+
+    .entry-name {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+
+    .entry-macros {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      gap: 10px;
+    }
+
+    .entry-macros .cal { color: var(--accent-dim); }
+
+    .entry-cal {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .entry-cal span { font-size: 10px; color: var(--muted); }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: var(--border);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+      transition: color 0.15s;
+      flex-shrink: 0;
+    }
+
+    .delete-btn:hover { color: var(--danger); }
+
+    /* Add food panel */
+    .add-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      z-index: 20;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 0;
+    }
+
+    .search-row input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .search-row input::placeholder { color: var(--muted); }
+    .search-row input:focus { border-color: var(--accent); }
+
+    .search-row button {
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: #0f0f0f;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s;
+    }
+
+    .search-row button:hover { opacity: 0.85; }
+    .search-row button:disabled { opacity: 0.4; cursor: default; }
+
+    /* Result / manual entry panel */
+    .entry-panel {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .entry-panel.visible { display: block; animation: slideIn 0.2s ease; }
+
+    .entry-panel .food-label {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 10px;
+      color: var(--accent);
+      font-family: var(--mono);
+    }
+
+    .fields-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .field input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+
+    .field input:focus { border-color: var(--accent); }
+
+    .panel-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-log {
+      flex: 1;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      color: #0f0f0f;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-log:hover { opacity: 0.85; }
+
+    .btn-cancel {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .btn-cancel:hover { border-color: var(--muted); }
+
+    .status-msg {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      padding: 6px 0 0;
+    }
+
+    .status-msg.error { color: var(--danger); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <h1>// food log</h1>
+    <div class="date-nav">
+      <button id="prev-day" title="previous day">‹</button>
+      <div id="current-date"></div>
+      <button id="next-day" title="next day">›</button>
+    </div>
+  </div>
+  <div class="totals-bar">
+    <div class="total-item">
+      <div class="total-label">kcal</div>
+      <div class="total-value" id="total-cal">0<span>cal</span></div>
+    </div>
+    <div class="total-item">
+      <div class="total-label">carbs</div>
+      <div class="total-value" id="total-carbs">0<span>g</span></div>
+    </div>
+    <div class="total-item">
+      <div class="total-label">fat</div>
+      <div class="total-value" id="total-fat">0<span>g</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="entries" id="entries-list"></div>
+
+<div class="add-bar">
+  <div class="search-row">
+    <input type="text" id="search-input" placeholder="search or describe a food…" autocomplete="off" />
+    <button id="search-btn">look up</button>
+  </div>
+  <div class="entry-panel" id="entry-panel">
+    <div class="food-label" id="panel-food-name"></div>
+    <div class="fields-row">
+      <div class="field">
+        <label>calories</label>
+        <input type="number" id="field-cal" placeholder="0" min="0" />
+      </div>
+      <div class="field">
+        <label>carbs (g)</label>
+        <input type="number" id="field-carbs" placeholder="0" min="0" />
+      </div>
+      <div class="field">
+        <label>fat (g)</label>
+        <input type="number" id="field-fat" placeholder="0" min="0" />
+      </div>
+    </div>
+    <div class="panel-actions">
+      <button class="btn-log" id="log-btn">+ log it</button>
+      <button class="btn-cancel" id="cancel-btn">cancel</button>
+    </div>
+  </div>
+  <div class="status-msg" id="status-msg"></div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────
+  let viewDate = todayKey();
+  let currentFoodName = '';
+
+  function todayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function formatDisplay(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    const date = new Date(y, m-1, d);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const target = new Date(y, m-1, d);
+    const diff = Math.round((target - today) / 86400000);
+    if (diff === 0) return 'today';
+    if (diff === -1) return 'yesterday';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function shiftDate(key, delta) {
+    const [y, m, d] = key.split('-').map(Number);
+    const date = new Date(y, m-1, d + delta);
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+  }
+
+  // ── Storage ────────────────────────────────────────────────────────
+  function getEntries(dateKey) {
+    return JSON.parse(localStorage.getItem('fl_' + dateKey) || '[]');
+  }
+
+  function saveEntries(dateKey, entries) {
+    localStorage.setItem('fl_' + dateKey, JSON.stringify(entries));
+  }
+
+  function addEntry(dateKey, entry) {
+    const entries = getEntries(dateKey);
+    entry.id = Date.now();
+    entries.push(entry);
+    saveEntries(dateKey, entries);
+    return entries;
+  }
+
+  function deleteEntry(dateKey, id) {
+    const entries = getEntries(dateKey).filter(e => e.id !== id);
+    saveEntries(dateKey, entries);
+    return entries;
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────
+  function render() {
+    document.getElementById('current-date').textContent = formatDisplay(viewDate);
+    document.getElementById('next-day').style.opacity = viewDate === todayKey() ? '0.2' : '1';
+    document.getElementById('next-day').disabled = viewDate === todayKey();
+
+    const entries = getEntries(viewDate);
+    const list = document.getElementById('entries-list');
+
+    if (entries.length === 0) {
+      list.innerHTML = `<div class="empty-state">nothing logged yet<br>search above to add a food</div>`;
+    } else {
+      list.innerHTML = entries.map(e => `
+        <div class="entry" data-id="${e.id}">
+          <div class="entry-info">
+            <div class="entry-name">${e.name}</div>
+            <div class="entry-macros">
+              <span class="cal">${e.cal} cal</span>
+              <span>${e.carbs}g carbs</span>
+              <span>${e.fat}g fat</span>
+            </div>
+          </div>
+          <button class="delete-btn" data-id="${e.id}" title="remove">×</button>
+        </div>
+      `).join('');
+    }
+
+    // Totals
+    const totals = entries.reduce((acc, e) => ({
+      cal: acc.cal + (Number(e.cal)||0),
+      carbs: acc.carbs + (Number(e.carbs)||0),
+      fat: acc.fat + (Number(e.fat)||0)
+    }), { cal: 0, carbs: 0, fat: 0 });
+
+    document.getElementById('total-cal').innerHTML = `${totals.cal}<span>cal</span>`;
+    document.getElementById('total-carbs').innerHTML = `${totals.carbs}<span>g</span>`;
+    document.getElementById('total-fat').innerHTML = `${totals.fat}<span>g</span>`;
+  }
+
+  // ── AI Lookup ──────────────────────────────────────────────────────
+  async function lookupFood(query) {
+    const btn = document.getElementById('search-btn');
+    const status = document.getElementById('status-msg');
+    btn.disabled = true;
+    btn.textContent = '…';
+    status.textContent = 'looking up…';
+    status.className = 'status-msg';
+
+    try {
+      const response = await fetch('/api/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ food: query })
+      });
+
+      if (!response.ok) throw new Error('API error');
+      const data = await response.json();
+
+      currentFoodName = data.name || query;
+      document.getElementById('panel-food-name').textContent = currentFoodName;
+      document.getElementById('field-cal').value = data.calories || '';
+      document.getElementById('field-carbs').value = data.carbs || '';
+      document.getElementById('field-fat').value = data.fat || '';
+
+      document.getElementById('entry-panel').classList.add('visible');
+      status.textContent = 'edit values if needed, then log it';
+    } catch (err) {
+      status.textContent = 'lookup failed — try again or enter manually';
+      status.className = 'status-msg error';
+
+      // Still open panel for manual entry
+      currentFoodName = query;
+      document.getElementById('panel-food-name').textContent = query;
+      document.getElementById('field-cal').value = '';
+      document.getElementById('field-carbs').value = '';
+      document.getElementById('field-fat').value = '';
+      document.getElementById('entry-panel').classList.add('visible');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'look up';
+    }
+  }
+
+  // ── Events ─────────────────────────────────────────────────────────
+  document.getElementById('prev-day').addEventListener('click', () => {
+    viewDate = shiftDate(viewDate, -1);
+    render();
+  });
+
+  document.getElementById('next-day').addEventListener('click', () => {
+    if (viewDate < todayKey()) {
+      viewDate = shiftDate(viewDate, 1);
+      render();
+    }
+  });
+
+  document.getElementById('search-btn').addEventListener('click', () => {
+    const q = document.getElementById('search-input').value.trim();
+    if (q) lookupFood(q);
+  });
+
+  document.getElementById('search-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const q = e.target.value.trim();
+      if (q) lookupFood(q);
+    }
+  });
+
+  document.getElementById('log-btn').addEventListener('click', () => {
+    const cal = document.getElementById('field-cal').value;
+    const carbs = document.getElementById('field-carbs').value;
+    const fat = document.getElementById('field-fat').value;
+
+    addEntry(viewDate, {
+      name: currentFoodName,
+      cal: Number(cal) || 0,
+      carbs: Number(carbs) || 0,
+      fat: Number(fat) || 0
+    });
+
+    // Reset
+    document.getElementById('entry-panel').classList.remove('visible');
+    document.getElementById('search-input').value = '';
+    document.getElementById('status-msg').textContent = '';
+    render();
+  });
+
+  document.getElementById('cancel-btn').addEventListener('click', () => {
+    document.getElementById('entry-panel').classList.remove('visible');
+    document.getElementById('status-msg').textContent = '';
+  });
+
+  document.getElementById('entries-list').addEventListener('click', e => {
+    const btn = e.target.closest('.delete-btn');
+    if (btn) {
+      deleteEntry(viewDate, Number(btn.dataset.id));
+      render();
+    }
+  });
+
+  // ── Init ───────────────────────────────────────────────────────────
+  render();
+</script>
+</body>
+</html>
